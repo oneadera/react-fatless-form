@@ -1,13 +1,24 @@
+# Yarn, node-modules linker - see .yarnrc.yml and the root README's Tooling
+# section for why node-modules rather than Plug'n'Play (React Native/Expo
+# doesn't support PnP).
 .yarn/*
+!.yarn/cache
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
 
-# enable zero-installs
-!.yarn/cache
-.pnp.*
+# .yarn/cache (committed, above) holds the zipped dependency archives;
+# node_modules itself is what `yarn install` materializes FROM that cache,
+# and is never committed - same rule as any node_modules-linked project.
+node_modules
 
-/dist
+# Build output
+dist
+
+# Native
+.expo
+*.tsbuildinfo
+
 .DS_Store

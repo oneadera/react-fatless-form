@@ -1,0 +1,197 @@
+import { useCallback, useMemo, useState, useRef } from 'react'
+
+import { createFormState } from './state'
+import {
+  ArrayFieldValue,
+  FieldPath,
+  FieldValue,
+  Focusable,
+  FormState,
+  FormSubmissionStatus,
+  FormValues,
+  PlatformFieldValue,
+  UseFormReturn,
+  ValidationResolver,
+} from './types'
+import { set } from './utils'
+
+/**
+ * Creates and owns a form's state: values, errors, touched fields, and
+ * submission status, plus every action to read or mutate them. This is the
+ * starting point for using this package - pass the result to
+ * {@link FormProvider} so descendant fields can reach it via
+ * {@link useFormContext} / {@link useField}, and to {@link handleSubmit} to
+ * wire up validation and submission.
+ *
+ * Every individual action returned (`setFieldValue`, `validate`,
+ * `resetForm`, etc.) is documented on {@link UseFormReturn} - see there for
+ * what each one does.
+ *
+ * @typeParam TValues - Your form's value shape.
+ * @param initialValues - The form's starting values. Also what `resetForm` resets back to,
+ * so prefer a stable reference (e.g. defined outside the component, or memoized) rather than
+ * a fresh object literal on every render.
+ *
+ * @example
+ * ```tsx
+ * function SignupForm() {
+ *   const form = useForm<SignupValues>({ email: '', password: '' })
+ *   return (
+ *     <FormProvider form={form}>
+ *       <EmailField />
+ *     </FormProvider>
+ *   )
+ * }
+ * ```
+ */
+export function useForm<TValues extends FormValues>(
+  initialValues: TValues,
+): UseFormReturn<TValues> {
+  const [state, setState] = useState(() => createFormState(initialValues))
+  const [submissionStatus, setSubmissionStatus] =
+    useState<FormSubmissionStatus>('idle')
+
+  // Maintain a synchronous ref for immediate access without stale closures
+  const valuesRef = useRef<TValues>(initialValues)
+
+  const getValues = useCallback(() => valuesRef.current, [])
+
+  const setFieldValue = useCallback(
+    <TField extends FieldPath<TValues>>(
+      field: TField,
+      value: FieldValue<TValues, TField> | PlatformFieldValue,
+    ) => {
+      valuesRef.current = set(valuesRef.current, field, value)
+
+      setState((previous: FormState<TValues>) => ({
+        ...previous,
+        values: valuesRef.current,
+      }))
+    },
+    [],
+  )
+
+  const batchSetFieldValues = useCallback((values: Partial<TValues>) => {
+    valuesRef.current = { ...valuesRef.current, ...values }
+
+    setState((previous: FormState<TValues>) => ({
+      ...previous,
+      values: valuesRef.current,
+    }))
+  }, [])
+
+  const setFieldArrayValue = useCallback(
+    <TField extends FieldPath<TValues>>(
+      field: TField,
+      value: ArrayFieldValue<TValues, TField>,
+    ) => {
+      valuesRef.current = set(valuesRef.current, field, value)
+
+      setState((previous: FormState<TValues>) => ({
+        ...previous,
+        values: valuesRef.current,
+      }))
+    },
+    [],
+  )
+
+  const setFieldError = useCallback(
+    <TField extends FieldPath<TValues>>(field: TField, error: string) => {
+      setState((previous: FormState<TValues>) => ({
+        ...previous,
+        errors: {
+          ...previous.errors,
+          [field]: error,
+        },
+      }))
+    },
+    [],
+  )
+
+  const setFieldTouched = useCallback(
+    <TField extends FieldPath<TValues>>(field: TField, touched: boolean) => {
+      setState((previous: FormState<TValues>) => ({
+        ...previous,
+        touched: {
+          ...previous.touched,
+          [field]: touched,
+        },
+      }))
+    },
+    [],
+  )
+
+  const validate = useCallback((validateFn: ValidationResolver<TValues>) => {
+    const errors = validateFn(valuesRef.current)
+    setState((previous: FormState<TValues>) => ({ ...previous, errors }))
+    return Object.keys(errors).length === 0
+  }, [])
+
+  const resetForm = useCallback(() => {
+    valuesRef.current = initialValues
+    setState(createFormState(initialValues))
+  }, [initialValues])
+
+  // Plain ref, not state: registering/unregistering a field's underlying
+  // input is pure imperative bookkeeping that should never itself trigger a
+  // re-render, the same way React's own ref system works.
+  const fieldRefs = useRef<Partial<Record<FieldPath<TValues>, Focusable>>>({})
+
+  const registerFieldRef = useCallback(
+    (field: FieldPath<TValues>, ref: Focusable | null) => {
+      if (ref === null) {
+        delete fieldRefs.current[field]
+      } else {
+        fieldRefs.current[field] = ref
+      }
+    },
+    [],
+  )
+
+  const setFocus = useCallback((field: FieldPath<TValues>) => {
+    fieldRefs.current[field]?.focus()
+  }, [])
+
+  const updateSubmissionStatus = useCallback((status: FormSubmissionStatus) => {
+    setSubmissionStatus(status)
+  }, [])
+
+  const resetSubmissionStatus = useCallback(() => {
+    setSubmissionStatus('idle')
+  }, [])
+
+  return useMemo(
+    () => ({
+      ...state,
+      submissionStatus,
+      getValues,
+      setFieldValue,
+      batchSetFieldValues,
+      setFieldArrayValue,
+      setFieldError,
+      setFieldTouched,
+      validate,
+      resetForm,
+      updateSubmissionStatus,
+      resetSubmissionStatus,
+      registerFieldRef,
+      setFocus,
+    }),
+    [
+      state,
+      submissionStatus,
+      getValues,
+      setFieldValue,
+      batchSetFieldValues,
+      setFieldArrayValue,
+      setFieldError,
+      setFieldTouched,
+      validate,
+      resetForm,
+      updateSubmissionStatus,
+      resetSubmissionStatus,
+      registerFieldRef,
+      setFocus,
+    ],
+  )
+}

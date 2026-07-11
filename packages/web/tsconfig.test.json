@@ -1,0 +1,15 @@
+{
+  // Not used by `build`, `typecheck`, or `test` - see
+  // packages/core/tsconfig.test.json for the full rationale. Repeats this
+  // package's own path mapping (react-fatless-form → core/src) so editors
+  // resolve the workspace import correctly inside __tests__/ too.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "react-fatless-form": ["../core/src/index.ts"]
+    }
+  },
+  "include": ["src", "__tests__"]
+}

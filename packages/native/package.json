@@ -1,0 +1,91 @@
+{
+  "name": "react-fatless-form-native",
+  "version": "0.1.0",
+  "description": "React Native bindings for react-fatless-form - useTextField, useNumberField, useSwitchField, and useFormSubmit, each wired for RN's built-in components. Re-exports the entire core API, so this is the only package a native app needs to import from.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "rollup -c",
+    "prepack": "cp ../../LICENSE ./",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oneadera/react-fatless-form.git",
+    "directory": "packages/native"
+  },
+  "author": "Adera Henry <oneadera@gmail.com> (https://www.linkedin.com/in/aderahenry/)",
+  "bugs": {
+    "url": "https://github.com/oneadera/react-fatless-form/issues"
+  },
+  "homepage": "https://github.com/oneadera/react-fatless-form/tree/main/packages/native#readme",
+  "dependencies": {
+    "react-fatless-form": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0 <20.0.0",
+    "react-native": ">=0.70.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-react": "^7.24.0",
+    "@babel/preset-typescript": "^7.24.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/jest": "^29.5.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "react-native": "^0.74.0",
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "react-native",
+    "react-native-form",
+    "react-native-forms",
+    "expo",
+    "react-native-input",
+    "react-native-validation",
+    "mobile-form",
+    "form",
+    "forms",
+    "form-library",
+    "form-validation",
+    "form-hooks",
+    "useTextField",
+    "useSwitchField",
+    "keyboard-handling",
+    "setFocus",
+    "return-key",
+    "form-submit",
+    "yup",
+    "typescript",
+    "ios",
+    "android",
+    "headless",
+    "form-bindings",
+    "react-native-hooks",
+    "form-management"
+  ],
+  "license": "MIT"
+}

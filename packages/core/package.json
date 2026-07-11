@@ -1,0 +1,98 @@
+{
+  "name": "react-fatless-form",
+  "version": "5.0.0",
+  "description": "Headless, deeply-typed React form state management for web and React Native. Platform-agnostic core - import react-fatless-form-web or react-fatless-form-native for the full field-binding experience, or this package directly to build a custom binding.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "rollup -c",
+    "prepack": "cp ../../LICENSE ./",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oneadera/react-fatless-form.git",
+    "directory": "packages/core"
+  },
+  "author": "Adera Henry <oneadera@gmail.com> (https://www.linkedin.com/in/aderahenry/)",
+  "bugs": {
+    "url": "https://github.com/oneadera/react-fatless-form/issues"
+  },
+  "homepage": "https://github.com/oneadera/react-fatless-form/tree/main/packages/core#readme",
+  "peerDependencies": {
+    "react": ">=18.0.0 <20.0.0",
+    "yup": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "yup": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-react": "^7.24.0",
+    "@babel/preset-typescript": "^7.24.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/jest": "^29.5.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "typescript": "^5.4.0",
+    "yup": "^1.4.0"
+  },
+  "keywords": [
+    "react",
+    "form",
+    "forms",
+    "form-library",
+    "form-state",
+    "form-management",
+    "form-validation",
+    "form-hooks",
+    "useForm",
+    "useFormContext",
+    "headless",
+    "headless-forms",
+    "typescript",
+    "strongly-typed",
+    "react-hooks",
+    "controlled-form",
+    "validation",
+    "yup",
+    "yup-resolver",
+    "zod",
+    "nested-fields",
+    "deep-path",
+    "field-path",
+    "setFocus",
+    "form-context",
+    "lightweight",
+    "zero-dependency",
+    "react-native",
+    "cross-platform",
+    "form-submit",
+    "form-state-management"
+  ],
+  "license": "MIT"
+}

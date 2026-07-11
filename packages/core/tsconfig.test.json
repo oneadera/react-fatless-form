@@ -1,0 +1,14 @@
+{
+  // Not used by `build`, `typecheck`, or `test` (Jest type-checks nothing -
+  // Babel just strips types). This exists purely so editors give full
+  // IntelliSense inside __tests__/, and so a developer can optionally run
+  // `tsc --noEmit -p tsconfig.test.json` to type-check the tests themselves.
+  // Extends the base config directly (not ./tsconfig.json) to avoid that
+  // file's `rootDir: "./src"`, which would otherwise reject files under
+  // __tests__/ as "not under rootDir".
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src", "__tests__"]
+}
