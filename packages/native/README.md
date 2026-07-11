@@ -180,4 +180,4 @@ See [`examples/native`](../../examples/native) for a complete signup form using 
 
 ## License
 
-MIT - [Adera Henry](https://www.linkedin.com/in/aderahenry/), with 🥬 from Nairobi, Kenya
+MIT

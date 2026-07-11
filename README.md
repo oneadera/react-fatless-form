@@ -78,7 +78,7 @@ The payoff: validation logic, the field-path type system, and the submission lif
 
 ### A note on the first run
 
-The `.yarn/cache` is committed (offline-friendly installs) but the first `yarn install` after cloning is still required to materialize `node_modules` from that cache and generate `.pnp.cjs`. After that, subsequent installs only need to run when adding or updating packages.
+The `.yarn/cache` is committed (offline-friendly installs) but the first `yarn install` after cloning is still required to materialize `node_modules` from that cache. After that, subsequent installs only need to run when adding or updating packages.
 
 The web example resolves `react-fatless-form` and `react-fatless-form-web` straight to their TypeScript source via `vite.config.ts` aliases, so `yarn workspace example-web dev` works without building first and edits to library source hot-reload immediately. The native example runs `build:deps` as a pre-hook, building core and native before Expo starts.
 

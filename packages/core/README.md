@@ -37,7 +37,7 @@ bun add react-fatless-form
 
 ## Migrating from v4?
 
-v5 is a ground-up rewrite. See the [migration guide](https://github.com/oneadera/react-fatless-form/#coming-from-an-earlier-version-of-react-fatless-form).
+v5 is a ground-up rewrite. See the [migration guide](https://github.com/oneadera/react-fatless-form#coming-from-v4).
 
 **tl;dr of what changed:**
 
