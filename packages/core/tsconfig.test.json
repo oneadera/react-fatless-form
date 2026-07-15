@@ -8,7 +8,8 @@
   // __tests__/ as "not under rootDir".
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "composite": true,
+    "types": ["jest"]
   },
   "include": ["src", "__tests__"]
 }

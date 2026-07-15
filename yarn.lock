@@ -10397,6 +10397,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-dom@npm:18.2.0":
+  version: 18.2.0
+  resolution: "react-dom@npm:18.2.0"
+  dependencies:
+    loose-envify: "npm:^1.1.0"
+    scheduler: "npm:^0.23.0"
+  peerDependencies:
+    react: ^18.2.0
+  checksum: 10c0/66dfc5f93e13d0674e78ef41f92ed21dfb80f9c4ac4ac25a4b51046d41d4d2186abc915b897f69d3d0ebbffe6184e7c5876f2af26bfa956f179225d921be713a
+  languageName: node
+  linkType: hard
+
 "react-dom@npm:^18.3.0":
   version: 18.3.1
   resolution: "react-dom@npm:18.3.1"
@@ -10424,6 +10436,8 @@ __metadata:
     babel-jest: "npm:^29.7.0"
     jest: "npm:^29.7.0"
     jest-environment-jsdom: "npm:^29.7.0"
+    react: "npm:18.2.0"
+    react-dom: "npm:18.2.0"
     react-fatless-form: "workspace:*"
     react-native: "npm:^0.74.0"
     typescript: "npm:^5.4.0"
@@ -10449,6 +10463,8 @@ __metadata:
     babel-jest: "npm:^29.7.0"
     jest: "npm:^29.7.0"
     jest-environment-jsdom: "npm:^29.7.0"
+    react: "npm:18.2.0"
+    react-dom: "npm:18.2.0"
     react-fatless-form: "workspace:*"
     typescript: "npm:^5.4.0"
   peerDependencies:
@@ -10471,6 +10487,8 @@ __metadata:
     babel-jest: "npm:^29.7.0"
     jest: "npm:^29.7.0"
     jest-environment-jsdom: "npm:^29.7.0"
+    react: "npm:18.2.0"
+    react-dom: "npm:18.2.0"
     typescript: "npm:^5.4.0"
     yup: "npm:^1.4.0"
   peerDependencies:
@@ -11158,8 +11176,8 @@ __metadata:
     "@rollup/plugin-typescript": "npm:^11.1.6"
     "@types/react": "npm:^18.3.0"
     "@types/react-dom": "npm:^18.3.0"
-    react: "npm:^18.3.0"
-    react-dom: "npm:^18.3.0"
+    react: "npm:18.2.0"
+    react-dom: "npm:18.2.0"
     rollup: "npm:^4.18.0"
     rollup-plugin-dts: "npm:^6.1.1"
     tslib: "npm:^2.6.3"
@@ -11257,7 +11275,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"scheduler@npm:^0.23.2":
+"scheduler@npm:^0.23.0, scheduler@npm:^0.23.2":
   version: 0.23.2
   resolution: "scheduler@npm:0.23.2"
   dependencies:

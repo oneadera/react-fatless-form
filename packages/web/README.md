@@ -37,7 +37,7 @@ npm install yup
 ## Quick start
 
 ```tsx
-import { useForm, FormProvider, useTextField, useCheckboxField, useFormSubmit, yupResolver } from 'react-fatless-form-web'
+import { useForm, FormProvider, handleSubmit, useTextField, useCheckboxField, yupResolver } from 'react-fatless-form-web'
 import * as yup from 'yup'
 
 interface SignupValues {
@@ -52,13 +52,17 @@ const schema = yup.object<SignupValues>({
 
 function SignupForm() {
   const form = useForm<SignupValues>({ email: '', remember: false })
-  const onSubmit = useFormSubmit<SignupValues>(yupResolver(schema), async (values) => {
-    await api.signup(values)
-  })
 
   return (
     <FormProvider form={form}>
-      <form onSubmit={onSubmit}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void handleSubmit(form, yupResolver(schema), async (values) => {
+            await api.signup(values)
+          })
+        }}
+      >
         <EmailField />
         <RememberCheckbox />
         <button type="submit" disabled={form.submissionStatus === 'submitting'}>
@@ -84,6 +88,8 @@ function RememberCheckbox() {
   return <input type="checkbox" checked={checked} onChange={onChange} />
 }
 ```
+
+`handleSubmit` takes `form` directly, so it works from any component with no structural requirements - which is why it's what you see above. Once your fields and submit button live together under one `FormProvider` (the common shape, and what the [example app](../../examples/web/src/SignupForm.tsx) shows), `useFormSubmit` further down is a slightly more ergonomic wrapper around the same flow, at the cost of one structural rule worth knowing about first - see its section below.
 
 ---
 
@@ -186,17 +192,33 @@ const { value, onChange, touched, error } = useFileField<UploadValues>('resume')
 
 ### `useFormSubmit<TValues>(resolver, onSubmit, config?)`
 
-Wraps `handleSubmit` for `<form>`: calls `event.preventDefault()`, then validates and submits. Reads the form from context.
+Wraps `handleSubmit` for `<form>`: calls `event.preventDefault()`, then validates and submits - a slightly more ergonomic alternative to calling `handleSubmit` yourself, for the common case where your fields and submit button live together under one `FormProvider`.
+
+Reads the form from context, so **it must be called by a component rendered inside `FormProvider`, not the component that creates `FormProvider`.** A component can never be a descendant of a provider it renders itself, no matter how the JSX is arranged - context only flows to *other* components nested inside it. The usual shape is to split the piece that owns `useForm`/`FormProvider` from the piece with the `<form>` and submit button:
 
 ```tsx
-const onSubmit = useFormSubmit(yupResolver(schema), async (values) => {
-  await api.signup(values)
-}, {
-  onSuccess: () => navigate('/welcome'),
-  onError: (err) => toast.error('Something went wrong'),
-})
-<form onSubmit={onSubmit}>...</form>
+function SignupForm() {
+  const form = useForm<SignupValues>({ email: '', remember: false })
+  return (
+    <FormProvider form={form}>
+      <SignupFormFields />
+    </FormProvider>
+  )
+}
+
+function SignupFormFields() {
+  const onSubmit = useFormSubmit(yupResolver(schema), async (values) => {
+    await api.signup(values)
+  }, {
+    onSuccess: () => navigate('/welcome'),
+    onError: (err) => toast.error('Something went wrong'),
+  })
+
+  return <form onSubmit={onSubmit}>...</form>
+}
 ```
+
+If your submit trigger can't be structured that way - e.g. it needs values or callbacks from somewhere outside the `FormProvider` subtree - call `handleSubmit` from [`react-fatless-form`](../core/README.md) directly instead, exactly as in [Quick start](#quick-start) above. See [the example app](../../examples/web/src/SignupForm.tsx) for this pattern in full, wired up to real fields and validation.
 
 ### Jumping focus between fields
 

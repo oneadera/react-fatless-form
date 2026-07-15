@@ -38,7 +38,7 @@ npm install yup
 
 ```tsx
 import { View, Button } from 'react-native'
-import { useForm, FormProvider, useTextField, useSwitchField, useFormSubmit, yupResolver } from 'react-fatless-form-native'
+import { useForm, FormProvider, handleSubmit, useTextField, useSwitchField, yupResolver } from 'react-fatless-form-native'
 import * as yup from 'yup'
 
 interface SignupValues {
@@ -53,9 +53,12 @@ const schema = yup.object<SignupValues>({
 
 function SignupForm() {
   const form = useForm<SignupValues>({ email: '', remember: false })
-  const onSubmit = useFormSubmit<SignupValues>(yupResolver(schema), async (values) => {
-    await api.signup(values)
-  })
+
+  const onSubmit = () => {
+    void handleSubmit(form, yupResolver(schema), async (values) => {
+      await api.signup(values)
+    })
+  }
 
   return (
     <FormProvider form={form}>
@@ -81,6 +84,8 @@ function RememberSwitch() {
   return <Switch value={value} onValueChange={onValueChange} />
 }
 ```
+
+`handleSubmit` takes `form` directly, so it works from any component with no structural requirements - which is why it's what you see above. Once your fields and submit button live together under one `FormProvider` (the common shape, and what the [example app](../../examples/native/src/SignupForm.tsx) shows), `useFormSubmit` further down is a slightly more ergonomic wrapper around the same flow, at the cost of one structural rule worth knowing about first - see its section below.
 
 ---
 
@@ -117,16 +122,32 @@ const { value, onValueChange } = useSwitchField<SignupValues>('remember')
 
 ### `useFormSubmit<TValues>(resolver, onSubmit, config?)`
 
-Wraps `handleSubmit` for a native submit button: dismisses the keyboard via `Keyboard.dismiss()` before running the validate → submit → update-status flow.
+Wraps `handleSubmit` for a native submit button: dismisses the keyboard via `Keyboard.dismiss()` before running the validate → submit → update-status flow - a slightly more ergonomic alternative to calling `handleSubmit` yourself, for the common case where your fields and submit button live together under one `FormProvider`.
+
+Reads the form from context, so **it must be called by a component rendered inside `FormProvider`, not the component that creates `FormProvider`.** A component can never be a descendant of a provider it renders itself, no matter how the JSX is arranged - context only flows to *other* components nested inside it. The usual shape is to split the piece that owns `useForm`/`FormProvider` from the piece with the submit button:
 
 ```tsx
-const onSubmit = useFormSubmit(yupResolver(schema), async (values) => {
-  await api.signup(values)
-}, {
-  onSuccess: () => navigation.navigate('Welcome'),
-})
-<Button title="Sign up" onPress={onSubmit} />
+function SignupForm() {
+  const form = useForm<SignupValues>({ email: '', remember: false })
+  return (
+    <FormProvider form={form}>
+      <SignupFormFields />
+    </FormProvider>
+  )
+}
+
+function SignupFormFields() {
+  const onSubmit = useFormSubmit(yupResolver(schema), async (values) => {
+    await api.signup(values)
+  }, {
+    onSuccess: () => navigation.navigate('Welcome'),
+  })
+
+  return <Button title="Sign up" onPress={onSubmit} />
+}
 ```
+
+If your submit trigger can't be structured that way - e.g. it needs values or callbacks from somewhere outside the `FormProvider` subtree - call `handleSubmit` from [`react-fatless-form`](../core/README.md) directly instead, exactly as in [Quick start](#quick-start) above (call `Keyboard.dismiss()` yourself if you still want that behavior). See [the example app](../../examples/native/src/SignupForm.tsx) for this pattern in full, wired up to real fields and validation.
 
 ### Jumping focus between fields (`returnKeyType` + `setFocus`)
 

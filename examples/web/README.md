@@ -6,6 +6,7 @@ A signup form (first/last name, email, password, agree-to-terms) built with
 Demonstrates:
 - `ControlledTextField` and `ControlledCheckbox` wrapping MUI components - the same pattern for any design system
 - `useTextField`, `useCheckboxField`, `useFormSubmit` from `react-fatless-form-web`
+- Why `SignupForm.tsx` splits into `SignupForm` (owns `useForm`/`FormProvider`) and `SignupFormFields` (calls `useFormSubmit`) - see the `useFormSubmit` section in [the web package's README](../../packages/web/README.md) for why that split is required
 - `yupResolver` for validation, inline success/error feedback via `form.submissionStatus`
 - Wiring `ref` through MUI's current `slotProps.htmlInput.ref` / `slotProps.input.ref` for `form.setFocus(...)` support
 

@@ -20,7 +20,8 @@
   "sideEffects": false,
   "scripts": {
     "build": "rollup -c",
-    "prepack": "cp ../../LICENSE ./",
+    "prepack": "cp ../../LICENSE ./ && node ../../scripts/rewrite-readme-links.js prepare",
+    "postpack": "node ../../scripts/rewrite-readme-links.js restore && rm -f LICENSE",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "jest",
@@ -56,6 +57,8 @@
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "typescript": "^5.4.0"
   },
   "keywords": [

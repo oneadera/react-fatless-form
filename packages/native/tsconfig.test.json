@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "baseUrl": ".",
+    "composite": true,
     "paths": {
       "react-fatless-form": ["../core/src/index.ts"]
-    }
+    },
+    "types": ["jest"]
   },
   "include": ["src", "__tests__"]
 }

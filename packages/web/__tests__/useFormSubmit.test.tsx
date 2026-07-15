@@ -17,16 +17,35 @@ function fakeFormEvent() {
 }
 
 describe('useFormSubmit', () => {
-  it('calls event.preventDefault()', () => {
+  it('calls event.preventDefault()', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined)
-    const { result } = renderWithForm(
+    const { result, form } = renderWithForm(
       () => useFormSubmit<SignupValues>(alwaysValid, onSubmit),
       { email: 'a@b.com' },
     )
     const event = fakeFormEvent()
 
-    act(() => {
+    // alwaysValid means handleSubmit's fire-and-forget chain runs all the
+    // way through (submitting -> onSubmit -> success -> resetForm), not
+    // just the synchronous prefix that calls preventDefault(). Waiting for
+    // it to settle here matters even though this test only asserts on
+    // preventDefault: leaving that chain dangling past the end of the test
+    // causes its later updates to land outside any act() scope.
+    //
+    // Waiting on "onSubmit was called" is NOT enough, and was the actual
+    // bug behind an earlier round of this same warning: onSubmit(...) is
+    // invoked - and recorded by the mock - synchronously, before
+    // handleSubmit even suspends on `await onSubmit(...)`. So that
+    // assertion passes on the very first poll, closing this act() scope
+    // before the *later* continuation (updateSubmissionStatus('success'),
+    // then resetForm(), which only run once that await resolves) has run at
+    // all. Waiting on submissionStatus becoming 'success' is only true once
+    // that whole continuation - both calls - has already executed.
+    await act(async () => {
       result.current(event)
+      await waitFor(() => {
+        expect(form.current.submissionStatus).toBe('success')
+      })
     })
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
@@ -40,6 +59,9 @@ describe('useFormSubmit', () => {
     )
     const event = fakeFormEvent()
 
+    // Unlike the alwaysValid case above, validation failure never reaches
+    // an `await` - handleSubmit returns synchronously right after marking
+    // fields touched, so there's nothing left running to wait for here.
     act(() => {
       result.current(event)
     })
@@ -54,20 +76,15 @@ describe('useFormSubmit', () => {
       { email: 'a@b.com' },
     )
 
-    act(() => {
+    await act(async () => {
       result.current(fakeFormEvent())
+      await waitFor(() => {
+        expect(form.current.submissionStatus).toBe('success')
+      })
     })
 
-    // handleSubmit runs fire-and-forget (`void handleSubmit(...)`), so its
-    // post-await state updates (success status, the onSubmit call itself)
-    // land a few microtask hops after result.current() returns. waitFor is
-    // Testing Library's purpose-built tool for exactly this - polling an
-    // assertion until it passes, while correctly keeping React's act()
-    // tracking happy - rather than hand-timing a manual flush.
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })
-    })
-    expect(form.current.submissionStatus).toBe('success')
+    // Safe to assert now that the whole chain has been confirmed settled.
+    expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })
   })
 
   it('does not call onSubmit when validation fails', () => {
@@ -98,27 +115,43 @@ function SignupForm({ onSubmit }: { onSubmit: (values: SignupValues) => Promise<
 }
 
 describe('useFormSubmit - end-to-end DOM round trip', () => {
-  it('prevents the browser default form submission', () => {
+  it('prevents the browser default form submission', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined)
-    const { Wrapper } = createFormWrapper<SignupValues>({ email: 'a@b.com' })
+    const { Wrapper, form } = createFormWrapper<SignupValues>({ email: 'a@b.com' })
     render(<SignupForm onSubmit={onSubmit} />, { wrapper: Wrapper })
 
     // fireEvent.X returns the result of the underlying dispatchEvent() call,
     // which is false when a cancelable event had preventDefault() called.
-    const notPrevented = fireEvent.submit(screen.getByRole('form', { name: 'signup' }))
+    // As above, alwaysValid lets the full submit chain run in the
+    // background, so the trigger and the wait for it to fully settle
+    // (submissionStatus, not just "onSubmit was called") are kept in one
+    // continuous act() scope rather than left dangling past the test.
+    let notPrevented!: boolean
+    await act(async () => {
+      notPrevented = fireEvent.submit(screen.getByRole('form', { name: 'signup' }))
+      await waitFor(() => {
+        expect(form.current.submissionStatus).toBe('success')
+      })
+    })
 
     expect(notPrevented).toBe(false)
   })
 
   it('runs the submit flow when the button is clicked', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined)
-    const { Wrapper } = createFormWrapper<SignupValues>({ email: 'a@b.com' })
+    const { Wrapper, form } = createFormWrapper<SignupValues>({ email: 'a@b.com' })
     render(<SignupForm onSubmit={onSubmit} />, { wrapper: Wrapper })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
-
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })
+    // Same reasoning as above: fireEvent.click is already act-wrapped
+    // internally, but calling it and then waiting for the full chain to
+    // settle are still kept in one continuous act(async () => {...}) scope.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+      await waitFor(() => {
+        expect(form.current.submissionStatus).toBe('success')
+      })
     })
+
+    expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })
   })
 })

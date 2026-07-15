@@ -28,15 +28,34 @@ const alwaysValid: ValidationResolver<SignupValues> = () => ({})
 const alwaysInvalid: ValidationResolver<SignupValues> = () => ({ email: 'Required' })
 
 describe('useFormSubmit', () => {
-  it('dismisses the keyboard', () => {
+  it('dismisses the keyboard', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined)
-    const { result } = renderWithForm(
+    const { result, form } = renderWithForm(
       () => useFormSubmit<SignupValues>(alwaysValid, onSubmit),
       { email: 'a@b.com' },
     )
 
-    act(() => {
+    // alwaysValid means handleSubmit's fire-and-forget chain runs all the
+    // way through (submitting -> onSubmit -> success -> resetForm), not
+    // just the synchronous prefix. Waiting for it to settle here matters
+    // even though this test only asserts on Keyboard.dismiss: leaving that
+    // chain dangling past the end of the test causes its later updates to
+    // land outside any act() scope.
+    //
+    // Waiting on "onSubmit was called" is NOT enough, and was the actual
+    // bug behind an earlier round of this same warning: onSubmit(...) is
+    // invoked - and recorded by the mock - synchronously, before handleSubmit
+    // even suspends on `await onSubmit(...)`. So that assertion passes on
+    // the very first poll, closing this act() scope before the *later*
+    // continuation (updateSubmissionStatus('success'), then resetForm(),
+    // which only run after that await resolves) has run at all. Waiting on
+    // submissionStatus becoming 'success' is only true once that whole
+    // continuation - both calls - has already executed synchronously.
+    await act(async () => {
       result.current()
+      await waitFor(() => {
+        expect(form.current.submissionStatus).toBe('success')
+      })
     })
 
     expect(Keyboard.dismiss).toHaveBeenCalledTimes(1)
@@ -63,20 +82,16 @@ describe('useFormSubmit', () => {
       { email: 'a@b.com' },
     )
 
-    act(() => {
+    await act(async () => {
       result.current()
+      await waitFor(() => {
+        expect(form.current.submissionStatus).toBe('success')
+      })
     })
 
-    // handleSubmit runs fire-and-forget (`void handleSubmit(...)`), so its
-    // post-await state updates (success status, the onSubmit call itself)
-    // land a few microtask hops after result.current() returns. waitFor is
-    // Testing Library's purpose-built tool for exactly this - polling an
-    // assertion until it passes, while correctly keeping React's act()
-    // tracking happy - rather than hand-timing a manual flush.
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })
-    })
-    expect(form.current.submissionStatus).toBe('success')
+    // Safe to assert now that the whole chain (including the reset that
+    // follows success) has been confirmed to have settled above.
+    expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })
   })
 
   it('does not call onSubmit when validation fails', () => {

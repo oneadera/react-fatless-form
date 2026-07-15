@@ -5,14 +5,6 @@ import { useForm, FormProvider, useFormContext, useFormSubmit, yupResolver } fro
 import ControlledTextInput from './fields/ControlledTextInput'
 import ControlledCheckbox from './fields/ControlledCheckbox'
 
-export interface SignupValues {
-  firstName: string
-  lastName: string
-  email: string
-  password: string
-  agreeToTerms: boolean
-}
-
 const initialValues: SignupValues = {
   firstName: '',
   lastName: '',
@@ -21,7 +13,7 @@ const initialValues: SignupValues = {
   agreeToTerms: false,
 }
 
-const schema = yup.object<SignupValues>({
+const schema = yup.object({
   firstName: yup.string().required('First name is required'),
   lastName: yup.string().required('Last name is required'),
   email: yup.string().email('Enter a valid email address').required('Email is required'),
@@ -31,6 +23,8 @@ const schema = yup.object<SignupValues>({
     .oneOf([true], 'You must agree to the terms to continue')
     .required(),
 })
+
+type SignupValues = yup.InferType<typeof schema>
 
 // Pretend API call - swap for the real thing.
 async function signUp(values: SignupValues): Promise<void> {
