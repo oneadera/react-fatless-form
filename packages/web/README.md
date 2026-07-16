@@ -26,7 +26,7 @@ pnpm add react-fatless-form-web
 bun add react-fatless-form-web
 ```
 
-`react-fatless-form` comes along as a dependency automatically. If you use `yupResolver`, also install `yup`:
+`react-fatless-form` comes along as a dependency automatically. If you use `yupResolver`, also install [yup](https://www.npmjs.com/package/yup):
 
 ```sh
 npm install yup
@@ -40,31 +40,38 @@ npm install yup
 import { useForm, FormProvider, handleSubmit, useTextField, useCheckboxField, yupResolver } from 'react-fatless-form-web'
 import * as yup from 'yup'
 
-interface SignupValues {
-  email: string
-  remember: boolean
-}
-
-const schema = yup.object<SignupValues>({
-  email: yup.string().email().required('Enter a valid email'),
-  remember: yup.boolean().required(),
+const schema = yup.object({
+  email: yup
+    .string()
+    .email('Please enter a valid email')
+    .required('Enter a valid email'),
+  acceptTermsAndConditions: yup
+    .boolean()
+    .oneOf([true], 'You must accept the terms and conditions')
+    .required('You must accept the terms and conditions'),
 })
 
+type SignupValues = yup.InferType<typeof schema>
+
 function SignupForm() {
-  const form = useForm<SignupValues>({ email: '', remember: false })
+  const form = useForm<SignupValues>({ 
+    email: '', 
+    acceptTermsAndConditions: false 
+  })
 
   return (
     <FormProvider form={form}>
       <form
-        onSubmit={(event) => {
+        onSubmit={event => {
           event.preventDefault()
-          void handleSubmit(form, yupResolver(schema), async (values) => {
+
+          void handleSubmit(form, yupResolver(schema), async values => {
             await api.signup(values)
           })
         }}
       >
         <EmailField />
-        <RememberCheckbox />
+        <TermsConditionsCheckbox />
         <button type="submit" disabled={form.submissionStatus === 'submitting'}>
           Sign up
         </button>
@@ -75,6 +82,7 @@ function SignupForm() {
 
 function EmailField() {
   const { value, onChange, onBlur, touched, error } = useTextField<SignupValues>('email')
+
   return (
     <div>
       <input value={value} onChange={onChange} onBlur={onBlur} />
@@ -83,13 +91,19 @@ function EmailField() {
   )
 }
 
-function RememberCheckbox() {
-  const { checked, onChange } = useCheckboxField<SignupValues>('remember')
-  return <input type="checkbox" checked={checked} onChange={onChange} />
+function TermsConditionsCheckbox() {
+  const { checked, onChange, error } = useCheckboxField<SignupValues>('acceptTermsAndConditions')
+
+  return (
+    <div>
+      <input type="checkbox" checked={checked} onChange={onChange} />
+      {error && <span>{error}</span>}
+    </div>
+  )
 }
 ```
 
-`handleSubmit` takes `form` directly, so it works from any component with no structural requirements - which is why it's what you see above. Once your fields and submit button live together under one `FormProvider` (the common shape, and what the [example app](../../examples/web/src/SignupForm.tsx) shows), `useFormSubmit` further down is a slightly more ergonomic wrapper around the same flow, at the cost of one structural rule worth knowing about first - see its section below.
+`handleSubmit` takes `form` directly, so it works from any component with no structural requirements. Once your fields and submit button live together under one `FormProvider` (the common shape, and what the [example app](../../examples/web/src/SignupForm.tsx) shows), `useFormSubmit` further down is a slightly more ergonomic wrapper around the same flow.
 
 ---
 
@@ -103,6 +117,7 @@ Binds a **string-valued** field to `<input>` or `<textarea>`. `value` is always 
 
 ```tsx
 const { value, onChange, onBlur, touched, error, ref } = useTextField<SignupValues>('email')
+
 <input ref={ref} value={value} onChange={onChange} onBlur={onBlur} />
 ```
 
@@ -112,6 +127,7 @@ Binds a **number-valued** field to `<input type="number">`. Parses on commit; ig
 
 ```tsx
 const { value, onChange, ref } = useNumberField<ProfileValues>('age')
+
 <input type="number" ref={ref} value={value} onChange={onChange} />
 ```
 
@@ -120,7 +136,8 @@ const { value, onChange, ref } = useNumberField<ProfileValues>('age')
 Binds a **boolean-valued** field to `<input type="checkbox">`. Returns `checked`, not `value`. Marks touched immediately on change.
 
 ```tsx
-const { checked, onChange, ref } = useCheckboxField<SignupValues>('remember')
+const { checked, onChange, ref } = useCheckboxField<SignupValues>('acceptTermsAndConditions')
+
 <input type="checkbox" ref={ref} checked={checked} onChange={onChange} />
 ```
 
@@ -130,6 +147,7 @@ Binds a **string-valued** field to `<select>` (single selection). Reads `event.t
 
 ```tsx
 const { value, onChange, ref } = useSelectField<SignupValues>('country')
+
 <select ref={ref} value={value} onChange={onChange}>
   <option value="ke">Kenya</option>
   <option value="ng">Nigeria</option>
@@ -142,6 +160,7 @@ Binds a **`string[]`-valued** field to `<select multiple>`. Reads `event.target.
 
 ```tsx
 const { value, onChange } = useMultiSelectField<SignupValues>('countries')
+
 <select multiple value={[...value]} onChange={onChange}>
   <option value="ke">Kenya</option>
   <option value="ng">Nigeria</option>
@@ -170,6 +189,7 @@ Use `useTextField` directly - radio buttons surface their value through `event.t
 
 ```tsx
 const { value, onChange } = useTextField<FormValues>('plan')
+
 <input type="radio" value="free" checked={value === 'free'} onChange={onChange} />
 <input type="radio" value="pro"  checked={value === 'pro'}  onChange={onChange} />
 ```
@@ -180,6 +200,7 @@ Binds a **`File[]`-typed** field to `<input type="file">` (single or multiple). 
 
 ```ts
 interface UploadValues { resume: File[] }
+
 const form = useForm<UploadValues>({ resume: [] })
 ```
 
@@ -198,7 +219,11 @@ Reads the form from context, so **it must be called by a component rendered insi
 
 ```tsx
 function SignupForm() {
-  const form = useForm<SignupValues>({ email: '', remember: false })
+  const form = useForm<SignupValues>({ 
+    email: '', 
+    acceptTermsAndConditions: false 
+  })
+
   return (
     <FormProvider form={form}>
       <SignupFormFields />
@@ -207,18 +232,19 @@ function SignupForm() {
 }
 
 function SignupFormFields() {
-  const onSubmit = useFormSubmit(yupResolver(schema), async (values) => {
+  const onSubmit = useFormSubmit(yupResolver(schema), async values => {
     await api.signup(values)
-  }, {
+  }, 
+  {
     onSuccess: () => navigate('/welcome'),
-    onError: (err) => toast.error('Something went wrong'),
+    onError: error => handleError(error),
   })
 
   return <form onSubmit={onSubmit}>...</form>
 }
 ```
 
-If your submit trigger can't be structured that way - e.g. it needs values or callbacks from somewhere outside the `FormProvider` subtree - call `handleSubmit` from [`react-fatless-form`](../core/README.md) directly instead, exactly as in [Quick start](#quick-start) above. See [the example app](../../examples/web/src/SignupForm.tsx) for this pattern in full, wired up to real fields and validation.
+If your submit trigger can't be structured that way - e.g. it needs values or callbacks from somewhere outside the `FormProvider` subtree - call [handleSubmit](../core/README.md#handlesubmitform-resolver-onsubmit-config) directly instead, exactly as in [Quick start](#quick-start) above. See [the example app](../../examples/web/src/SignupForm.tsx) for this pattern in full, wired up to real fields and validation.
 
 ### Jumping focus between fields
 
@@ -228,6 +254,7 @@ Every field hook returns a `ref`. Wire it to the element, then call `form.setFoc
 function EmailInput() {
   const form = useFormContext<SignupValues>()
   const { value, onChange, ref } = useTextField<SignupValues>('email')
+
   return (
     <input
       ref={ref}
@@ -245,6 +272,7 @@ The `adapt*` functions (`adaptTextField`, `adaptSelectField`, etc.) are exported
 
 ```tsx
 const useCheckoutField = createUseField(useCheckoutFormContext)
+
 function useCheckoutTextField<TField extends StringFieldPath<CheckoutValues>>(name: TField) {
   return adaptTextField(useCheckoutField(name))
 }
@@ -254,7 +282,7 @@ function useCheckoutTextField<TField extends StringFieldPath<CheckoutValues>>(na
 
 ## Example
 
-See [`examples/web`](../../examples/web) for a complete signup form using [MUI](https://mui.com).
+See [example](../../examples/web) for a complete signup form using [MUI](https://mui.com).
 
 ---
 

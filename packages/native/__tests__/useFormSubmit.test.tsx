@@ -42,20 +42,28 @@ describe('useFormSubmit', () => {
     // chain dangling past the end of the test causes its later updates to
     // land outside any act() scope.
     //
+    // A sync act() wraps just the synchronous prefix (the 'submitting'
+    // update); waitFor - which wraps its own polling in act() internally -
+    // handles the rest on its own. Nesting waitFor inside an *additional*
+    // outer act(async () => {...}) here previously caused React to lose
+    // track of its act environment entirely (updates never committing,
+    // waitFor timing out) rather than just warning - so the two are kept
+    // separate rather than combined into one wrapper.
+    //
     // Waiting on "onSubmit was called" is NOT enough, and was the actual
     // bug behind an earlier round of this same warning: onSubmit(...) is
     // invoked - and recorded by the mock - synchronously, before handleSubmit
     // even suspends on `await onSubmit(...)`. So that assertion passes on
-    // the very first poll, closing this act() scope before the *later*
-    // continuation (updateSubmissionStatus('success'), then resetForm(),
-    // which only run after that await resolves) has run at all. Waiting on
-    // submissionStatus becoming 'success' is only true once that whole
-    // continuation - both calls - has already executed synchronously.
-    await act(async () => {
+    // the very first poll, before the *later* continuation
+    // (updateSubmissionStatus('success'), then resetForm(), which only run
+    // after that await resolves) has run at all. Waiting on submissionStatus
+    // becoming 'success' is only true once that whole continuation - both
+    // calls - has already executed synchronously.
+    act(() => {
       result.current()
-      await waitFor(() => {
-        expect(form.current.submissionStatus).toBe('success')
-      })
+    })
+    await waitFor(() => {
+      expect(form.current.submissionStatus).toBe('success')
     })
 
     expect(Keyboard.dismiss).toHaveBeenCalledTimes(1)
@@ -82,11 +90,11 @@ describe('useFormSubmit', () => {
       { email: 'a@b.com' },
     )
 
-    await act(async () => {
+    act(() => {
       result.current()
-      await waitFor(() => {
-        expect(form.current.submissionStatus).toBe('success')
-      })
+    })
+    await waitFor(() => {
+      expect(form.current.submissionStatus).toBe('success')
     })
 
     // Safe to assert now that the whole chain (including the reset that

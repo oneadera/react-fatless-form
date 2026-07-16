@@ -26,7 +26,7 @@ pnpm add react-fatless-form-native
 bun add react-fatless-form-native
 ```
 
-`react-fatless-form` comes along as a dependency automatically. If you use `yupResolver`, also install `yup`:
+`react-fatless-form` comes along as a dependency automatically. If you use `yupResolver`, also install [yup](https://www.npmjs.com/package/yup):
 
 ```sh
 npm install yup
@@ -41,29 +41,39 @@ import { View, Button } from 'react-native'
 import { useForm, FormProvider, handleSubmit, useTextField, useSwitchField, yupResolver } from 'react-fatless-form-native'
 import * as yup from 'yup'
 
-interface SignupValues {
-  email: string
-  remember: boolean
-}
-
-const schema = yup.object<SignupValues>({
-  email: yup.string().email().required('Enter a valid email'),
-  remember: yup.boolean().required(),
+const schema = yup.object({
+  email: yup
+    .string()
+    .email('Please enter a valid email')
+    .required('Enter a valid email'),
+  acceptTermsAndConditions: yup
+    .boolean()
+    .oneOf([true], 'You must accept the terms and conditions')
+    .required('You must accept the terms and conditions'),
 })
 
+type SignupValues = yup.InferType<typeof schema>
+
 function SignupForm() {
-  const form = useForm<SignupValues>({ email: '', remember: false })
+  const form = useForm<SignupValues>({ 
+    email: '', 
+    acceptTermsAndConditions: false 
+  })
 
   const onSubmit = () => {
-    void handleSubmit(form, yupResolver(schema), async (values) => {
+    void handleSubmit(form, yupResolver(schema), async ({ acceptTermsAndConditions, ...values }) => {
       await api.signup(values)
+    },
+    {
+      onSuccess: response => toast.success(response.message),
+      onError: error => handleError(error)
     })
   }
 
   return (
     <FormProvider form={form}>
       <EmailField />
-      <RememberSwitch />
+      <TermsConditionsSwitch />
       <Button title="Sign up" onPress={onSubmit} />
     </FormProvider>
   )
@@ -71,6 +81,7 @@ function SignupForm() {
 
 function EmailField() {
   const { value, onChangeText, onBlur, touched, error } = useTextField<SignupValues>('email')
+
   return (
     <View>
       <TextInput value={value} onChangeText={onChangeText} onBlur={onBlur} />
@@ -79,13 +90,19 @@ function EmailField() {
   )
 }
 
-function RememberSwitch() {
-  const { value, onValueChange } = useSwitchField<SignupValues>('remember')
-  return <Switch value={value} onValueChange={onValueChange} />
+function TermsConditionsSwitch() {
+  const { value, onValueChange, error } = useSwitchField<SignupValues>('acceptTermsAndConditions')
+
+  return (
+    <View>
+      <Switch value={value} onValueChange={onValueChange} />
+      {error ? <Text>{error}</Text> : null}
+    </View>
+  )
 }
 ```
 
-`handleSubmit` takes `form` directly, so it works from any component with no structural requirements - which is why it's what you see above. Once your fields and submit button live together under one `FormProvider` (the common shape, and what the [example app](../../examples/native/src/SignupForm.tsx) shows), `useFormSubmit` further down is a slightly more ergonomic wrapper around the same flow, at the cost of one structural rule worth knowing about first - see its section below.
+`handleSubmit` takes `form` directly, so it works from any component with no structural requirements. Once your fields and submit button live together under one `FormProvider` (the common shape, and what the [example app](../../examples/native/src/SignupForm.tsx) shows), `useFormSubmit` further down is a slightly more ergonomic wrapper around the same flow.
 
 ---
 
@@ -99,6 +116,7 @@ Binds a **string-valued** field to RN's `<TextInput>`. Returns `onChangeText` (n
 
 ```tsx
 const { value, onChangeText, onBlur, touched, error, ref } = useTextField<SignupValues>('email')
+
 <TextInput ref={ref} value={value} onChangeText={onChangeText} onBlur={onBlur} />
 ```
 
@@ -108,6 +126,7 @@ Binds a **number-valued** field to `<TextInput keyboardType="numeric">`. `value`
 
 ```tsx
 const { value, onChangeText, ref } = useNumberField<ProfileValues>('age')
+
 <TextInput keyboardType="numeric" ref={ref} value={value} onChangeText={onChangeText} />
 ```
 
@@ -116,7 +135,8 @@ const { value, onChangeText, ref } = useNumberField<ProfileValues>('age')
 Binds a **boolean-valued** field to RN's `<Switch>`. Returns `onValueChange`, not `onChange`. Marks touched immediately on change - a switch has no meaningful blur on touch devices.
 
 ```tsx
-const { value, onValueChange } = useSwitchField<SignupValues>('remember')
+const { value, onValueChange } = useSwitchField<SignupValues>('acceptTermsAndConditions')
+
 <Switch value={value} onValueChange={onValueChange} />
 ```
 
@@ -128,7 +148,8 @@ Reads the form from context, so **it must be called by a component rendered insi
 
 ```tsx
 function SignupForm() {
-  const form = useForm<SignupValues>({ email: '', remember: false })
+  const form = useForm<SignupValues>({ email: '', acceptTermsAndConditions: false })
+
   return (
     <FormProvider form={form}>
       <SignupFormFields />
@@ -137,9 +158,10 @@ function SignupForm() {
 }
 
 function SignupFormFields() {
-  const onSubmit = useFormSubmit(yupResolver(schema), async (values) => {
+  const onSubmit = useFormSubmit(yupResolver(schema), async values => {
     await api.signup(values)
-  }, {
+  }, 
+  {
     onSuccess: () => navigation.navigate('Welcome'),
   })
 
@@ -147,7 +169,7 @@ function SignupFormFields() {
 }
 ```
 
-If your submit trigger can't be structured that way - e.g. it needs values or callbacks from somewhere outside the `FormProvider` subtree - call `handleSubmit` from [`react-fatless-form`](../core/README.md) directly instead, exactly as in [Quick start](#quick-start) above (call `Keyboard.dismiss()` yourself if you still want that behavior). See [the example app](../../examples/native/src/SignupForm.tsx) for this pattern in full, wired up to real fields and validation.
+If your submit trigger can't be structured that way - e.g. it needs values or callbacks from somewhere outside the `FormProvider` subtree - call [handleSubmit](../core/README.md#handlesubmitform-resolver-onsubmit-config) directly instead, exactly as in [Quick start](#quick-start) above (call `Keyboard.dismiss()` yourself if you still want that behavior). See [the example app](../../examples/native/src/SignupForm.tsx) for this pattern in full, wired up to real fields and validation.
 
 ### Jumping focus between fields (`returnKeyType` + `setFocus`)
 
@@ -157,6 +179,7 @@ Wire each field's `ref` to `<TextInput>`, then call `form.setFocus('fieldName')`
 function FirstNameInput() {
   const form = useFormContext<SignupValues>()
   const { value, onChangeText, ref } = useTextField<SignupValues>('firstName')
+  
   return (
     <TextInput
       ref={ref}
@@ -174,9 +197,9 @@ function FirstNameInput() {
 
 React Native has no built-in equivalents. These are always design-system problems, not form-state problems:
 
-- **Select/dropdown** - `@react-native-picker/picker`, React Native Paper `Menu`, or a custom bottom-sheet. Wire via `useField` directly: `field.setValue(newValue)`.
+- **Select/dropdown** - Wire via `useField` directly: `field.setValue(newValue)`.
 - **Radio buttons** - your design system provides the component. Wire via `useField`.
-- **File/image picker** - `expo-document-picker` or `expo-image-picker`. Wire via `useField` with a value type matching what the picker returns.
+- **File/image picker** - Wire via `useField` with a value type matching what the picker returns.
 
 The web package exports `useSelectField`, `useMultiSelectField`, and `useFileField` because `<select>` and `<input type="file">` are standard HTML with a consistent event shape. Native has no such equivalent.
 
@@ -186,6 +209,7 @@ The `adapt*` functions are exported alongside the hooks. If you're using a custo
 
 ```tsx
 const useCheckoutField = createUseField(useCheckoutFormContext)
+
 function useCheckoutTextField<TField extends StringFieldPath<CheckoutValues>>(name: TField) {
   return adaptTextField(useCheckoutField(name))
 }
@@ -195,7 +219,7 @@ function useCheckoutTextField<TField extends StringFieldPath<CheckoutValues>>(na
 
 ## Example
 
-See [`examples/native`](../../examples/native) for a complete signup form using [React Native Paper](https://callstack.github.io/react-native-paper/) via Expo.
+See [example](../../examples/native) for a complete signup form using [React Native Paper](https://callstack.github.io/react-native-paper/) via Expo.
 
 ---
 

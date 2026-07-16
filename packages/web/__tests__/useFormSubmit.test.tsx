@@ -32,20 +32,28 @@ describe('useFormSubmit', () => {
     // preventDefault: leaving that chain dangling past the end of the test
     // causes its later updates to land outside any act() scope.
     //
+    // A sync act() wraps just the synchronous prefix (calling
+    // preventDefault, then the 'submitting' update); waitFor - which wraps
+    // its own polling in act() internally - handles the rest on its own.
+    // Nesting waitFor inside an *additional* outer act(async () => {...})
+    // here previously caused React to lose track of its act environment
+    // entirely (updates never committing, waitFor timing out) rather than
+    // just warning - so the two are kept separate rather than combined.
+    //
     // Waiting on "onSubmit was called" is NOT enough, and was the actual
     // bug behind an earlier round of this same warning: onSubmit(...) is
     // invoked - and recorded by the mock - synchronously, before
     // handleSubmit even suspends on `await onSubmit(...)`. So that
-    // assertion passes on the very first poll, closing this act() scope
-    // before the *later* continuation (updateSubmissionStatus('success'),
-    // then resetForm(), which only run once that await resolves) has run at
-    // all. Waiting on submissionStatus becoming 'success' is only true once
-    // that whole continuation - both calls - has already executed.
-    await act(async () => {
+    // assertion passes on the very first poll, before the *later*
+    // continuation (updateSubmissionStatus('success'), then resetForm(),
+    // which only run once that await resolves) has run at all. Waiting on
+    // submissionStatus becoming 'success' is only true once that whole
+    // continuation - both calls - has already executed.
+    act(() => {
       result.current(event)
-      await waitFor(() => {
-        expect(form.current.submissionStatus).toBe('success')
-      })
+    })
+    await waitFor(() => {
+      expect(form.current.submissionStatus).toBe('success')
     })
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
@@ -76,11 +84,11 @@ describe('useFormSubmit', () => {
       { email: 'a@b.com' },
     )
 
-    await act(async () => {
+    act(() => {
       result.current(fakeFormEvent())
-      await waitFor(() => {
-        expect(form.current.submissionStatus).toBe('success')
-      })
+    })
+    await waitFor(() => {
+      expect(form.current.submissionStatus).toBe('success')
     })
 
     // Safe to assert now that the whole chain has been confirmed settled.
@@ -122,16 +130,13 @@ describe('useFormSubmit - end-to-end DOM round trip', () => {
 
     // fireEvent.X returns the result of the underlying dispatchEvent() call,
     // which is false when a cancelable event had preventDefault() called.
-    // As above, alwaysValid lets the full submit chain run in the
-    // background, so the trigger and the wait for it to fully settle
-    // (submissionStatus, not just "onSubmit was called") are kept in one
-    // continuous act() scope rather than left dangling past the test.
-    let notPrevented!: boolean
-    await act(async () => {
-      notPrevented = fireEvent.submit(screen.getByRole('form', { name: 'signup' }))
-      await waitFor(() => {
-        expect(form.current.submissionStatus).toBe('success')
-      })
+    // fireEvent is already act-wrapped internally for the synchronous
+    // portion; waitFor handles the async remainder on its own - see the
+    // note in the describe block above for why these are kept separate
+    // rather than nested inside one outer act(async () => {...}).
+    const notPrevented = fireEvent.submit(screen.getByRole('form', { name: 'signup' }))
+    await waitFor(() => {
+      expect(form.current.submissionStatus).toBe('success')
     })
 
     expect(notPrevented).toBe(false)
@@ -142,14 +147,9 @@ describe('useFormSubmit - end-to-end DOM round trip', () => {
     const { Wrapper, form } = createFormWrapper<SignupValues>({ email: 'a@b.com' })
     render(<SignupForm onSubmit={onSubmit} />, { wrapper: Wrapper })
 
-    // Same reasoning as above: fireEvent.click is already act-wrapped
-    // internally, but calling it and then waiting for the full chain to
-    // settle are still kept in one continuous act(async () => {...}) scope.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
-      await waitFor(() => {
-        expect(form.current.submissionStatus).toBe('success')
-      })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+    await waitFor(() => {
+      expect(form.current.submissionStatus).toBe('success')
     })
 
     expect(onSubmit).toHaveBeenCalledWith({ email: 'a@b.com' })

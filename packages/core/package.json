@@ -20,7 +20,8 @@
   "sideEffects": false,
   "scripts": {
     "build": "rollup -c",
-    "prepack": "cp ../../LICENSE ./",
+    "prepack": "cp ../../LICENSE ./ && node ../../scripts/rewrite-readme-links.js prepare",
+    "postpack": "node ../../scripts/rewrite-readme-links.js restore && rm -f LICENSE",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "jest",

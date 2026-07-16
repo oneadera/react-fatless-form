@@ -6,8 +6,8 @@ Headless, deeply-typed React form state management. Zero DOM/RN knowledge - mana
 
 You'll usually want one of the platform packages built on top of this one instead of importing it directly:
 
-- **[react-fatless-form-web](https://github.com/oneadera/react-fatless-form/tree/main/packages/web#readme)** - DOM bindings (`<input>`, `<select>`, `<input type="file">`, `<form>`)
-- **[react-fatless-form-native](https://github.com/oneadera/react-fatless-form/tree/main/packages/native#readme)** - React Native bindings (`TextInput`, `Switch`, keyboard handling)
+- **[react-fatless-form-web](../web/README.md)** - DOM bindings (`<input>`, `<select>`, `<input type="file">`, `<form>`)
+- **[react-fatless-form-native](../native/README.md)** - React Native bindings (`TextInput`, `Switch`, keyboard handling)
 
 Import this package directly if you're building a new platform binding, or a fully custom field-binding layer.
 
@@ -31,13 +31,13 @@ pnpm add react-fatless-form
 bun add react-fatless-form
 ```
 
-`yup` is **not** a runtime dependency - `yupResolver` only needs yup's types (erased at compile time). If you use `yupResolver`, install `yup` yourself; any reasonably recent v1 version works.
+[yup](https://www.npmjs.com/package/yup) is **not** a runtime dependency - `yupResolver` only needs yup's types (erased at compile time). If you use `yupResolver`, install [yup](https://www.npmjs.com/package/yup) yourself; any reasonably recent v1 version works.
 
 ---
 
 ## Migrating from v4?
 
-v5 is a ground-up rewrite. See the [migration guide](https://github.com/oneadera/react-fatless-form#coming-from-v4).
+v5 is a ground-up rewrite. See the [migration guide](../../README.md#coming-from-v4).
 
 **tl;dr of what changed:**
 
@@ -56,27 +56,40 @@ v5 is a ground-up rewrite. See the [migration guide](https://github.com/oneadera
 import { useForm, FormProvider, useFormContext, useField, handleSubmit, yupResolver } from 'react-fatless-form'
 import * as yup from 'yup'
 
-interface SignupValues {
-  email: string
-  password: string
-}
-
-const schema = yup.object<SignupValues>({
-  email: yup.string().email().required('Email is required'),
-  password: yup.string().min(8).required('Password is required'),
+const schema = yup.object({
+  email: yup
+    .string()
+    .email('Please enter a valid email')
+    .required('Email address is required'),
+  password: yup
+    .string()
+    .min(8)
+    .required('Password is required'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('password')], 'Passwords must match')
+    .required('Please confirm your password'),
 })
+
+type SignupValues = yup.InferType<typeof schema>
 
 function SignupForm() {
   const form = useForm<SignupValues>({ email: '', password: '' })
 
   const onSubmit = () =>
-    handleSubmit(form, yupResolver(schema), async (values) => {
+    handleSubmit(form, yupResolver(schema), async ({confirmPassword, ...values}) => {
       await api.signup(values)
+    },
+    {
+      onSuccess: response => toast.success(response.message),
+      onError: error => handleError(error)
     })
 
   return (
     <FormProvider form={form}>
       <EmailField />
+      <PasswordField />
+      <ConfirmPasswordField />
       <button onClick={onSubmit}>Sign up</button>
     </FormProvider>
   )
@@ -84,9 +97,32 @@ function SignupForm() {
 
 function EmailField() {
   const { value, error, touched, setValue, onBlur } = useField<SignupValues>('email')
+
   return (
     <div>
-      <input value={value ?? ''} onChange={(e) => setValue(e.target.value)} onBlur={onBlur} />
+      <input value={value ?? ''} onChange={e => setValue(e.target.value)} onBlur={onBlur} />
+      {touched && error && <span>{error}</span>}
+    </div>
+  )
+}
+
+function PasswordField() {
+  const { value, error, touched, setValue, onBlur } = useField<SignupValues>('password')
+
+  return (
+    <div>
+      <input value={value ?? ''} onChange={e => setValue(e.target.value)} onBlur={onBlur} />
+      {touched && error && <span>{error}</span>}
+    </div>
+  )
+}
+
+function ConfirmPasswordField() {
+  const { value, error, touched, setValue, onBlur } = useField<SignupValues>('confirmPassword')
+
+  return (
+    <div>
+      <input value={value ?? ''} onChange={e => setValue(e.target.value)} onBlur={onBlur} />
       {touched && error && <span>{error}</span>}
     </div>
   )
@@ -140,9 +176,10 @@ Validates, then calls `onSubmit`. Tracks status (`idle` → `submitting` → `su
 ```tsx
 await handleSubmit(form, yupResolver(schema), async (values) => {
   await api.signup(values)
-}, {
+}, 
+{
   onSuccess: () => navigate('/welcome'),
-  onError: (err) => toast.error('Something went wrong'),
+  onError: error => handleError(error),
 })
 ```
 
